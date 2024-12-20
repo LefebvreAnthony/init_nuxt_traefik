@@ -1,0 +1,60 @@
+services:
+  web:
+    container_name: web
+    build: .
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.web.rule=Host(`web.${DOMAIN}`)"
+      - "traefik.http.services.web.loadbalancer.server.port=3000"
+    volumes:
+      - .:/app
+    # depends_on:
+    #   db:
+    #     condition: service_healthy
+    networks:
+      - proxy
+
+
+  # db:
+  #   container_name: db
+  #   image: mysql:latest
+  #   volumes:
+  #     - db_data:/var/lib/mysql
+  #   healthcheck:
+  #     test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+  #     interval: 10s
+  #     timeout: 30s
+  #     retries: 5
+  #     start_period: 30s
+  #   environment:
+  #     MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+  #     MYSQL_DATABASE: ${MYSQL_DATABASE}
+  #     MYSQL_USER: ${MYSQL_USER}
+  #     MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+  #   networks:
+  #     - proxy
+
+  traefik:
+    image: traefik:v3.2
+    container_name: traefik
+    restart: unless-stopped
+    environment:
+      - DOMAIN=${DOMAIN}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik=true"
+    ports:
+      - "8080:8080"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./routers/:/etc/traefik/:ro
+      - ./certs:/etc/certs:ro
+    networks:
+      - proxy
+
+networks:
+  proxy:
+
+volumes:
+  db_data:
